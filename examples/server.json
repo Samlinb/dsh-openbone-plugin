@@ -1,0 +1,11 @@
+{
+  "dataRoot": "./openbone-data",
+  "port": 39872,
+  "publicUrl": "http://127.0.0.1:39872",
+  "tokenEnv": "OPENBONE_LIBRARY_TOKEN",
+  "timeoutMs": 60000,
+  "previewTtlMs": 600000,
+  "maxBodyBytes": 2097152,
+  "exportVersion": "4.2.22",
+  "projects": []
+}

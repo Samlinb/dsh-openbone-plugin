@@ -1,0 +1,10 @@
+node_modules/
+*.tgz
+coverage/
+.env
+*.local.json
+evidence/
+PLAN.md
+ACCEPTANCE.md
+AGENTS.md
+tools/verify-live.mjs

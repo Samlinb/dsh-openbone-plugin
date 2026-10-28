@@ -1,0 +1,10 @@
+import {parseArgs} from 'node:util';
+import {realpath} from 'node:fs/promises';
+import path from 'node:path';
+import {rebuildCatalog} from '../src/catalog.js';
+import {atomicJson} from '../src/files.js';
+const {values}=parseArgs({options:{'data-root':{type:'string'},write:{type:'boolean'}}});
+if(!values['data-root'])throw new Error('Usage: node tools/rebuild-catalog.mjs --data-root <private replica> [--write]');
+const root=await realpath(values['data-root']),catalog=await rebuildCatalog(root);
+if(values.write)await atomicJson(path.join(root,'catalog.json'),catalog);
+console.log(JSON.stringify({works:catalog.works.length,written:!!values.write}));

@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 1,
+  "module": "@openbone/web-runtime",
+  "version": "0.2.0",
+  "source": "OpenBone/web-runtime",
+  "official": {
+    "repository": "https://github.com/EsotericSoftware/spine-runtimes",
+    "files": {
+      "spine42": {
+        "package": "@esotericsoftware/spine-webgl",
+        "version": "4.2.120",
+        "sha256": "70431c0c6a57c9156066b9709a73e5635839145f2503e3b90d4b32d4a20e6a13"
+      },
+      "spine43": {
+        "package": "@esotericsoftware/spine-webgl",
+        "version": "4.3.13",
+        "sha256": "640be290bc7c459102351c350c6b8b16c873df63a1d839f831c8fc7411e86b56"
+      }
+    }
+  },
+  "files": {
+    "CAPABILITIES.md": "b14d88e29c09662d9a9774d102d78eb514bf33fc59121ba7cfa9dd9fcd0e4bd8",
+    "README.md": "36becf9ff436ba71dab4a3ffedf8f95d17bb17c024185eba6ce5503a0d0b421a",
+    "README.zh-CN.md": "c3aa02e82066366d144c12cf38608fd6ff57364b6d215f6cee9a0bf63b716e93",
+    "official/README.md": "b55fd58956c99ce9613963318eab3c4cc11fd70bfa97316a894fdc6fea0e20ea",
+    "official/README.zh-CN.md": "af33e0eaa2e67da6f9b19bd50776f8745a9d83973a586509adbe2896d4a578ef",
+    "official/adapter.js": "fbb2bdafd543de0b2963a9c96183e3e6c594ea9dd75bea3b80065caf49748799",
+    "official/dist/spine42-LICENSE.txt": "435774fb793b0f67892899fc934f98009e64fd90ad3ab964117274e279a0f50e",
+    "official/dist/spine42.js": "70431c0c6a57c9156066b9709a73e5635839145f2503e3b90d4b32d4a20e6a13",
+    "official/dist/spine43-LICENSE.txt": "435774fb793b0f67892899fc934f98009e64fd90ad3ab964117274e279a0f50e",
+    "official/dist/spine43.js": "640be290bc7c459102351c350c6b8b16c873df63a1d839f831c8fc7411e86b56",
+    "official/dist/upstream.json": "a40d1a4b6a6d91cd3332b670b5fe4242beb8607ecf63bc213eb37b99ea1023ff",
+    "official/source.js": "cdc75b36522be4cb73c6548b02a7f42b78a320b9620c80ae10c6c36f6533e004",
+    "package.json": "5a1781478417249d777ce6f0ec31913e15eff33330c69f7175ff67ea997ffaab",
+    "src/atlas.js": "5f9e82290ef141985403764076d12f74d3265d74ff32cd5ffc12e9918ba8df03",
+    "src/attachments.js": "ce7e461e0de3b90a323c282c5ab032fd6239cca034f5102a547f001a1c6ebd8e",
+    "src/binary.js": "993a3fb3199e80240b1750c8bee0c868171c253367c56ed55e729dfd2a380f50",
+    "src/constraint-data.js": "00c7475dc3d5a6da467b68c9da36e431e9b4fdb2d69cb7a4fd81a35a22c5513d",
+    "src/constraints.js": "e51b9dfc90a6a974c7b0ff85e039cf42e802454f34b3f04086357b0b46eecf3e",
+    "src/core.js": "af9e71a90589a39934f02ab21f0fabdfc2ed119a2ec9a850c48bd9f690c4c4d3",
+    "src/geometry.js": "2225668d57a7cafa7cae6b2a9f9f5a09f63fa4d774c8c8f4ba0718a0ec1eb3d5",
+    "src/index.d.ts": "0eafa30522c3ba0f2ade85842c9e51f3592ce5864d1a4e58aab4e0c132308668",
+    "src/index.js": "2468d52a7963ce6f51f6ad010cb29df55bae440fb442d00a869499f5f08200dc",
+    "src/loader.js": "43e782c1c0358d1c8ff198c7740b286f532167fad02e16e046f72f7cee27aaf5",
+    "src/physics.js": "9f40896aaf13f7e66944eb57480a0e6958f60780a9cdb168eebbefc2f749a046",
+    "src/predicates.js": "eca5e400a084c763af3ec9ec7f8e3cc778044804bad488dc801e4a5635189167",
+    "src/versions.js": "443f398b6177ed147a75b2a932ecaae79635857f1aa63f6c2227d8c24649d3c0",
+    "src/webgl.js": "3ba4cb3a584aec89b11570b25c542be5615b65ac5660f3a50103dccba8a02da9"
+  }
+}

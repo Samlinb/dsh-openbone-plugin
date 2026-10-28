@@ -1,0 +1,15 @@
+{
+  "repository": "https://github.com/EsotericSoftware/spine-runtimes",
+  "files": {
+    "spine42": {
+      "package": "@esotericsoftware/spine-webgl",
+      "version": "4.2.120",
+      "sha256": "70431c0c6a57c9156066b9709a73e5635839145f2503e3b90d4b32d4a20e6a13"
+    },
+    "spine43": {
+      "package": "@esotericsoftware/spine-webgl",
+      "version": "4.3.13",
+      "sha256": "640be290bc7c459102351c350c6b8b16c873df63a1d839f831c8fc7411e86b56"
+    }
+  }
+}

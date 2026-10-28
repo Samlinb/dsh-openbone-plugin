@@ -1,0 +1,10 @@
+{
+  "name": "@openbone/web-runtime",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "description": "Independent OpenBone skeletal animation runtime for browsers",
+  "exports": { ".": { "types": "./src/index.d.ts", "default": "./src/index.js" } },
+  "scripts": { "test": "node --test test/*.test.js", "demo": "node tools/serve.js", "test:browser":"node tools/browser-capabilities.js", "package":"node tools/package.js" },
+  "engines": { "node": ">=20" }
+}

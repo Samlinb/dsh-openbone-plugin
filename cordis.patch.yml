@@ -1,0 +1,21 @@
+- id: session-log-deepseek
+  config:
+    enabled: false
+    maxBytes: 8388608
+
+- id: session-telemetry-otel
+  config:
+    mode: DISABLED
+    shutdownTimeoutMillis: 3000
+    maxRequestBytes: 4000000
+    exporter: {}
+    processor: {}
+
+- insert:
+    - id: openbone
+      name: dsh-openbone-plugin
+      config:
+        serviceUrl: !!js process.env.OPENBONE_LIBRARY_URL
+        tokenEnv: OPENBONE_LIBRARY_TOKEN
+        timeoutMs: 60000
+

@@ -1,0 +1,13 @@
+<!doctype html>
+<html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>OpenBone preview</title>
+<style>
+:root{color-scheme:dark;font:14px system-ui;background:#11151c;color:#e4eaf2}body{margin:0;display:flex;flex-direction:column;height:100vh}header,footer{padding:12px 16px;background:#1b2230}h1{font-size:16px;margin:0 0 8px}nav{display:flex;gap:10px;align-items:center;flex-wrap:wrap}button,select,input{font:inherit}button,select{background:#28344a;color:inherit;border:1px solid #51617c;border-radius:5px;padding:6px}canvas{width:100%;height:100%;min-height:0;display:block}main{flex:1;min-height:0}#status{white-space:pre-wrap;overflow-wrap:anywhere}#seek{flex:1;min-width:110px}small{color:#b0bfd3}a{color:#acd0ff}
+</style>
+<header><h1 id="title">OpenBone preview</h1><nav>
+<button id="play" disabled>Play</button><select id="engine" aria-label="Runtime"><option value="independent">OpenBone</option><option value="official">Spine WebGL</option></select><select id="animation" aria-label="Animation"></select><select id="skin" aria-label="Skin"></select>
+<input id="seek" type="range" min="0" max="1" step="0.001" value="0" aria-label="Time"><output id="time">0.000 s</output>
+<select id="speed" aria-label="Speed"><option value="0.25">0.25×</option><option value="0.5">0.5×</option><option value="1" selected>1×</option><option value="2">2×</option></select>
+<label><input id="loop" type="checkbox" checked><span id="loop-label">Loop</span></label><button id="fit">Fit</button><button id="capture">Capture</button><select id="language" aria-label="Language"><option value="en">English</option><option value="zh">中文</option></select>
+</nav></header><main><canvas id="canvas"></canvas></main><footer><div id="status" role="status">Loading…</div><small id="identity"></small><a id="download" hidden download="openbone-preview.png">PNG</a></footer>
+<script type="module" src="./viewer.js"></script></html>
