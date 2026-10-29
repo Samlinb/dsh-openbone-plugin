@@ -13,6 +13,7 @@ const taskHome=await mkdtemp(path.join(tmpdir(),'openbone-plugin-install-'));
 const env={...process.env,DSH_HOME:taskHome,OPENBONE_LIBRARY_URL:'http://127.0.0.1:39872'};
 const packageInfo=await json('package.json');
 const pack=path.resolve(`dsh-openbone-plugin-${packageInfo.version}.tgz`);
+const installSpec=process.env.OPENBONE_INSTALL_SPEC??pack;
 async function cli(args){
   const child=spawn(process.execPath,['--import','tsx/esm','apps/cli/src/bin.ts',...args],{cwd:checkout,env,windowsHide:true,stdio:['ignore','pipe','pipe']});
   let output='',errors='';child.stdout.on('data',b=>{output+=b;});child.stderr.on('data',b=>{errors+=b;});
@@ -26,16 +27,19 @@ try{
   const {verifyRuntime}=await import(pathToFileURL(path.join(extracted,'package','src','runtime.js')).href);
   const runtime=await verifyRuntime();assert.ok(runtime.root.startsWith(extracted));
   await cli(['--profile','openbone-acceptance','--from-default-profile','web','--dump-config']);
-  await cli(['plugin','--profile','openbone-acceptance','add',pack,'--ignore-scripts']);
+  await cli(['plugin','--profile','openbone-acceptance','add',installSpec,'--ignore-scripts','--registry=https://registry.npmjs.org/']);
   const profile=await json(path.join(taskHome,'profiles','openbone-acceptance','package.json'));
   assert.ok(profile.dsh.profile.bundles.includes('dsh-openbone-plugin'));
+  const installedRoot=path.join(taskHome,'profiles','openbone-acceptance','node_modules','dsh-openbone-plugin');
+  const installed=await json(path.join(installedRoot,'package.json'));assert.equal(installed.version,packageInfo.version);
+  const installedRuntime=await verifyRuntime(path.join(installedRoot,'vendor','web-runtime'));assert.equal(installedRuntime.manifest.version,runtime.manifest.version);
   const dump=await cli(['--profile','openbone-acceptance','--dump-config']);
   const rows=yaml.load(dump,{schema:yamlSchema});
   assert.ok(rows.some(row=>row.name==='dsh-openbone-plugin'));
   assert.equal(rows.find(row=>row.id==='session-log-deepseek').config.enabled,false);
   assert.equal(rows.find(row=>row.id==='session-telemetry-otel').config.mode,'DISABLED');
   await mkdir('evidence',{recursive:true});
-  const receipt={checkedAt:new Date().toISOString(),pluginVersion:packageInfo.version,bundledRuntimeVersion:runtime.manifest.version,extractedRuntimeVerified:true,supportedCliInstall:true,webProfileComposition:true,pluginBundlePresent:true,sessionLogUploadDisabled:true,sessionOtelDisabled:true,usedTemporaryDshHome:true};
+  const receipt={checkedAt:new Date().toISOString(),pluginVersion:packageInfo.version,installSpec,bundledRuntimeVersion:runtime.manifest.version,extractedRuntimeVerified:true,installedRuntimeVerified:true,supportedCliInstall:true,webProfileComposition:true,pluginBundlePresent:true,sessionLogUploadDisabled:true,sessionOtelDisabled:true,usedTemporaryDshHome:true};
   await writeFile('evidence/install-receipt.json',JSON.stringify(receipt,null,2)+'\n');console.log(JSON.stringify(receipt,null,2));
 }finally{
   const resolved=path.resolve(taskHome);assert.ok(resolved.startsWith(path.resolve(tmpdir())+path.sep)&&path.basename(resolved).startsWith('openbone-plugin-install-'));await rm(resolved,{recursive:true,force:true,maxRetries:5,retryDelay:200});

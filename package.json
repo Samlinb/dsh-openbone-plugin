@@ -1,6 +1,6 @@
 {
   "name": "dsh-openbone-plugin",
-  "version": "0.2.0",
+  "version": "0.2.3",
   "description": "Create, edit and preview OpenBone skeletal animations through DSH.",
   "repository": {
     "type": "git",
@@ -63,6 +63,8 @@
     "test:unit": "node --test test/library.test.js test/runtime.test.js test/server.test.js test/release.test.js",
     "test:dsh": "node --test test/plugin.test.js",
     "check": "node tools/check.mjs",
+    "release": "node tools/release.mjs",
+    "release:dry": "node tools/release.mjs --dry-run --skip-gates --allow-dirty",
     "pack:release": "node tools/pack-release.mjs",
     "bundle:runtime": "node tools/bundle-runtime.mjs",
     "prepack": "node tools/check.mjs",
