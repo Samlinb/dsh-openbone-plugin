@@ -7,6 +7,9 @@ evidence/
 release/
 PLAN.md
 ACCEPTANCE.md
+
+AGENTS.md
+tools/verify-live.mjs
 PLAN.md
 ACCEPTANCE.md
 AGENTS.md
