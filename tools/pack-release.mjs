@@ -21,7 +21,7 @@ async function run(program,args){
 const report=JSON.parse(await run(process.execPath,[npmCli,'pack','--json','--pack-destination',destination]));
 assert.equal(report.length,1);const item=report[0];
 assert.equal(item.name,pkg.name);assert.equal(item.version,pkg.version);
-const allowed=/^(?:src\/[a-z0-9-]+\.js|public\/(?:viewer\.html|viewer\.js|engines\.js)|tools\/(?:serve|hosted)\.mjs|vendor\/web-runtime\/.+|locale\/(?:en|zh)\.json|examples\/server\.json|package\.json|cordis\.patch\.yml|README(?:\.zh-CN)?\.md)$/;
+const allowed=/^(?:src\/[a-z0-9-]+\.js|public\/(?:viewer\.html|viewer\.js|engines\.js|welcome(?:\.zh-CN)?\.md)|tools\/(?:serve|hosted)\.mjs|vendor\/web-runtime\/.+|locale\/(?:en|zh)\.json|examples\/server\.json|package\.json|cordis\.patch\.yml|README(?:\.zh-CN)?\.md)$/;
 for(const file of item.files){
   assert.match(file.path,allowed,`Unapproved package file: ${file.path}`);
   assert.ok(!/(?:^|\/)(?:node_modules|evidence|workspaces|records|assets|\.env|\.npmrc)(?:\/|$)/.test(file.path),`Private data in package: ${file.path}`);

@@ -22,8 +22,7 @@ jobs:
         with:
           node-version: '24'
           package-manager-cache: false
-      # Standalone checks use only Node built-ins. DSH peers are supplied by the Host;
-      # the local test:dsh test additionally needs a built DSH checkout.
+      - run: npx --yes pnpm@11.24.0 install --frozen-lockfile --ignore-scripts
       - run: npm run check
       - run: npm run test:unit
       - run: npm run pack:release

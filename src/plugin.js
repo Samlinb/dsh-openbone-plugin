@@ -1,6 +1,9 @@
 import { createMcpToolDefinition } from '@deepseek-ai/dsh-mcp-client';
 import { fields, requireThat } from './errors.js';
-import { trialConnection, validAccessToken } from './trial.js';
+import { trialConnection } from './trial.js';
+import { connectionConfig } from './config.js';
+import { randomUUID } from 'node:crypto';
+export { Config } from './config.js';
 
 export const name = 'openbone-studio';
 export const inject = ['tools'];
@@ -24,17 +27,51 @@ const scoped = new Set(['binding','bind','schema','call','save','preview']);
 
 /** Installs tools through DSH's existing MCP result/image adapter and scoped tool registry. */
 export async function apply(ctx, raw) {
-  fields(raw, ['serviceUrl','tokenEnv','timeoutMs','autoTrial'], ['serviceUrl','tokenEnv','timeoutMs']);
-  const url = new URL(raw.serviceUrl);
-  requireThat((url.protocol === 'https:' || (url.protocol === 'http:' && ['127.0.0.1','localhost','[::1]'].includes(url.hostname))) && /^\/(?:[a-z0-9-]+\/)*$/.test(url.pathname) && !url.search && !url.hash && !url.username && !url.password, 'INVALID_CONFIG', 'Configure an HTTPS or loopback service base URL ending in /.');
-  requireThat(typeof raw.tokenEnv === 'string' && /^[A-Z][A-Z0-9_]*$/.test(raw.tokenEnv), 'INVALID_CONFIG', 'Configure the credential environment variable name.');
-  const token = process.env[raw.tokenEnv] || undefined;
-  requireThat(token === undefined || validAccessToken(token), 'INVALID_CONFIG', 'Invalid asset-service credential.');
-  requireThat(raw.autoTrial === undefined || typeof raw.autoTrial === 'boolean', 'INVALID_CONFIG', 'autoTrial must be a boolean.');
-  requireThat(token || raw.autoTrial !== false, 'INVALID_CONFIG', 'Missing asset-service credential.');
-  requireThat(Number.isInteger(raw.timeoutMs) && raw.timeoutMs > 0 && raw.timeoutMs <= 2147483647, 'INVALID_CONFIG', 'Configure a valid request timeout.');
   const lifetime = new AbortController(), pending = new Set();
-  const enroll = trialConnection(ctx, url, { timeoutMs: raw.timeoutMs, lifetime: lifetime.signal });
+  let lastConnection;
+  function currentConnection() {
+    const config = connectionConfig(raw);
+    if (!lastConnection || lastConnection.url.href !== config.url.href || lastConnection.token !== config.token || lastConnection.timeoutMs !== config.timeoutMs) {
+      lastConnection = { ...config, enroll: trialConnection(ctx, config.url, { timeoutMs: config.timeoutMs, lifetime: lifetime.signal }) };
+    }
+    return lastConnection;
+  }
+  async function request(action, body, signal) {
+    const { url, token, timeoutMs, enroll } = currentConnection();
+    const connection = token ? { url, token } : await enroll();
+    let response;
+    try { response = await fetch(new URL(`v1/${action}`, connection.url), {
+      method: 'POST', redirect: 'error', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${connection.token}` },
+      body: JSON.stringify(body), signal: AbortSignal.any([signal, lifetime.signal, AbortSignal.timeout(timeoutMs)]),
+    }); } catch {
+      requireThat(false, 'CONNECTION_FAILED', 'Cannot reach the OpenBone service. Check the saved service address and that it is reachable from the DSH server. Retry after the service is running; check Advanced settings if the request times out.');
+    }
+    let result;
+    try { result = await response.json(); } catch {
+      requireThat(false, 'INVALID_SERVICE_RESPONSE', 'This address did not return an OpenBone service response. Check the full service/account address with your administrator.');
+    }
+    requireThat(response.status !== 401 && response.status !== 403, 'ACCESS_DENIED', 'OpenBone access was denied. Check the account address and access key in OpenBone Studio settings. If your trial expired or access was revoked, contact your administrator.');
+    requireThat(response.ok, result.error?.code ?? 'SERVICE_ERROR', result.error?.message ?? 'Private asset service request failed.');
+    return result;
+  }
+  // Connection owns browser authentication, Host/Origin checks and owner access.
+  // No endpoint or credential is accepted from the browser or returned to it.
+  ctx.inject(['connection'], scope => {
+    if (!scope.connection.fetch?.register) return;
+    scope.effect(() => scope.connection.fetch.register({
+      path: '/api/openbone-studio/check', methods: ['POST'], requestBody: 'buffered',
+      async fetch(incoming) {
+        const work = request('binding', { sessionId: `setup-${randomUUID()}` }, incoming.signal);
+        pending.add(work);
+        try {
+          const result = await work;
+          return Response.json({ connected: true, projectCount: result.availableProjects?.length ?? 0 });
+        } catch (error) {
+          return Response.json({ connected: false, code: error.code ?? 'SERVICE_ERROR' }, { status: 400 });
+        } finally { pending.delete(work); }
+      },
+    }));
+  });
   ctx.effect(() => async () => { lifetime.abort(); await Promise.allSettled([...pending]); });
   for (const [name, action, description, inputSchema] of tools) {
     const definition = createMcpToolDefinition(ctx, {
@@ -47,13 +84,7 @@ export async function apply(ctx, raw) {
           body.sessionId = execution.agent.id;
         }
         const work = (async () => {
-          const connection = token ? { url, token } : await enroll();
-          const response = await fetch(new URL(`v1/${action}`, connection.url), {
-            method:'POST', redirect:'error', headers:{'Content-Type':'application/json',Authorization:`Bearer ${connection.token}`},
-            body:JSON.stringify(body), signal:AbortSignal.any([execution.signal,lifetime.signal,AbortSignal.timeout(raw.timeoutMs)]),
-          });
-          const result = await response.json();
-          requireThat(response.ok, result.error?.code ?? 'SERVICE_ERROR', result.error?.message ?? 'Private asset service request failed.');
+          const result = await request(action, body, execution.signal);
           return Array.isArray(result.content) ? result : {content:[{type:'text',text:JSON.stringify(result)}],structuredContent:{data:result}};
         })();
         pending.add(work);

@@ -15,7 +15,7 @@
     - id: openbone
       name: dsh-openbone-plugin
       config:
-        serviceUrl: !!js process.env.OPENBONE_LIBRARY_URL
+        serviceUrl: ''
         tokenEnv: OPENBONE_LIBRARY_TOKEN
         timeoutMs: 60000
         autoTrial: true

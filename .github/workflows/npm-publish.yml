@@ -42,6 +42,7 @@ jobs:
         env:
           RELEASE_TAG: ${{ github.event.release.tag_name || inputs.release_tag }}
           RELEASE_IS_PRERELEASE: ${{ github.event.release.prerelease }}
+      - run: npx --yes pnpm@11.24.0 install --frozen-lockfile --ignore-scripts
       - run: npm run check
       - run: npm run test:unit
       - run: npm run pack:release

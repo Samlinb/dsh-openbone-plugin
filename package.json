@@ -32,7 +32,9 @@
     },
     "./runtime/official": "./vendor/web-runtime/official/adapter.js",
     "./runtime/manifest": "./vendor/web-runtime/BUNDLE.json",
-    "./package.json": "./package.json"
+    "./package.json": "./package.json",
+    "./client": "./src/client.js",
+    "./locale/*.json": "./locale/*.json"
   },
   "files": [
     "src/",
@@ -57,11 +59,19 @@
   "dsh": {
     "bundle": {
       "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "inject": [
+        "@deepseek-ai/dsh-client-locale",
+        "@deepseek-ai/dsh-client-ui-settings",
+        "@deepseek-ai/dsh-client-ui-plugin-manager"
+      ],
+      "platform": "web"
     }
   },
   "scripts": {
     "test": "node --test test/*.test.js",
-    "test:unit": "node --test test/library.test.js test/runtime.test.js test/server.test.js test/release.test.js test/hosted.test.js test/trial.test.js",
+    "test:unit": "node --test test/library.test.js test/runtime.test.js test/server.test.js test/release.test.js test/hosted.test.js test/trial.test.js test/setup.test.js",
     "test:hosted": "node --test test/hosted.test.js",
     "hosted": "node tools/hosted.mjs",
     "test:dsh": "node --test test/plugin.test.js",
@@ -75,5 +85,13 @@
     "prepack": "node tools/check.mjs",
     "import:library": "node tools/import-library.mjs",
     "serve": "node tools/serve.mjs"
+  },
+  "dependencies": {
+    "@deepseek-ai/schemastery": "3.18.6-alpha.1"
+  },
+  "devDependencies": {
+    "jsdom": "29.1.1",
+    "react": "18.3.1",
+    "react-dom": "18.3.1"
   }
 }
