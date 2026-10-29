@@ -83,7 +83,7 @@ jobs:
           set -euo pipefail
           files=(release/*.tgz)
           test "${#files[@]}" -eq 1
-          npm publish "./${files[0]}" --access public --registry=https://registry.npmjs.org/ --tag "$NPM_DIST_TAG"
+          npm run publish:artifact
         env:
           NPM_DIST_TAG: ${{ needs.validate.outputs.dist-tag }}
           # OIDC is preferred. An optional granular token bootstraps the first package publication.

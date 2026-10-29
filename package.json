@@ -79,6 +79,8 @@
     "check": "node tools/check.mjs",
     "release": "node tools/release.mjs",
     "publish:release": "node tools/release.mjs --publish",
+    "publish:resume": "node tools/release.mjs --publish --resume",
+    "publish:artifact": "node tools/npm-publish-artifact.mjs",
     "release:dry": "node tools/release.mjs --dry-run --skip-gates --allow-dirty",
     "pack:release": "node tools/pack-release.mjs",
     "bundle:runtime": "node tools/bundle-runtime.mjs",
