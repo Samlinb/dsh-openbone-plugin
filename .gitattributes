@@ -1,0 +1,2 @@
+# The vendored distribution is pinned by byte hashes, including original line endings.
+vendor/web-runtime/** -text
