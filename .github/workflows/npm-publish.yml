@@ -3,8 +3,14 @@ name: Publish to npm
 on:
   release:
     types: [published]
-  # Manual runs validate and produce an artifact; they never publish.
+  # Blank manual runs validate only. An existing release tag explicitly opts into a retry.
   workflow_dispatch:
+    inputs:
+      release_tag:
+        description: 'Existing release tag to publish (for example v0.2.3); leave blank for validation only'
+        required: false
+        default: ''
+        type: string
 
 permissions:
   contents: read
@@ -22,7 +28,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
-          ref: ${{ github.event.release.tag_name || github.ref }}
+          ref: ${{ github.event.release.tag_name || inputs.release_tag || github.ref }}
           persist-credentials: false
       - uses: actions/setup-node@v6
         with:
@@ -30,9 +36,11 @@ jobs:
           package-manager-cache: false
       - name: Validate release identity
         id: release
-        run: node tools/verify-release.mjs
+        run: |
+          node tools/verify-release.mjs
+          node --input-type=module -e 'import assert from "node:assert/strict"; import {readFileSync} from "node:fs"; const p=JSON.parse(readFileSync("package.json","utf8")); if(process.env.RELEASE_TAG) assert.equal(process.env.RELEASE_TAG,"v"+p.version,"Release tag must exactly match package version");'
         env:
-          RELEASE_TAG: ${{ github.event.release.tag_name }}
+          RELEASE_TAG: ${{ github.event.release.tag_name || inputs.release_tag }}
           RELEASE_IS_PRERELEASE: ${{ github.event.release.prerelease }}
       - run: npm run check
       - run: npm run test:unit
@@ -45,7 +53,7 @@ jobs:
           retention-days: 14
 
   publish:
-    if: github.event_name == 'release'
+    if: github.repository == 'Samlinb/dsh-openbone-plugin' && (github.event_name == 'release' || (github.event_name == 'workflow_dispatch' && inputs.release_tag != ''))
     needs: validate
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -55,7 +63,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
-          ref: ${{ github.event.release.tag_name }}
+          ref: ${{ github.event.release.tag_name || inputs.release_tag }}
           persist-credentials: false
       - uses: actions/setup-node@v6
         with:
@@ -74,7 +82,7 @@ jobs:
           set -euo pipefail
           files=(release/*.tgz)
           test "${#files[@]}" -eq 1
-          npm publish "${files[0]}" --access public --registry=https://registry.npmjs.org/ --tag "$NPM_DIST_TAG"
+          npm publish "./${files[0]}" --access public --registry=https://registry.npmjs.org/ --tag "$NPM_DIST_TAG"
         env:
           NPM_DIST_TAG: ${{ needs.validate.outputs.dist-tag }}
           # OIDC is preferred. An optional granular token bootstraps the first package publication.

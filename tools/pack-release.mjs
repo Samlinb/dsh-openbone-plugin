@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {spawn} from 'node:child_process';
-import {mkdir,writeFile,rm,mkdtemp,readdir} from 'node:fs/promises';
+import {mkdir,writeFile,rm,mkdtemp,readdir,realpath} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import path from 'node:path';
 import {pathToFileURL} from 'node:url';
@@ -31,7 +31,7 @@ try{
   await run('tar',['-xzf',path.join(destination,item.filename),'-C',extracted]);
   const root=path.join(extracted,'package');
   const {verifyRuntime}=await import(pathToFileURL(path.join(root,'src','runtime.js')).href);
-  const runtime=await verifyRuntime();assert.ok(inside(extracted,runtime.root));
+  const runtime=await verifyRuntime();assert.ok(inside(await realpath(extracted),runtime.root));
   const extractedInfo=await json(path.join(root,'package.json'));assert.deepEqual(extractedInfo.dsh,pkg.dsh);
   await writeFile(path.join(destination,'audit.json'),JSON.stringify({package:pkg.name,version:pkg.version,filename:item.filename,integrity:item.integrity,files:item.files.map(f=>f.path),runtimeVersion:runtime.manifest.version,privateDataExcluded:true},null,2)+'\n');
   console.log(JSON.stringify({filename:item.filename,bytes:item.size,files:item.entryCount,runtimeVersion:runtime.manifest.version,privateDataExcluded:true}));
