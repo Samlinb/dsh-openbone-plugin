@@ -1,0 +1,82 @@
+name: Publish to npm
+
+on:
+  release:
+    types: [published]
+  # Manual runs validate and produce an artifact; they never publish.
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: npm-publish-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      dist-tag: ${{ steps.release.outputs.dist-tag }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.release.tag_name || github.ref }}
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          package-manager-cache: false
+      - name: Validate release identity
+        id: release
+        run: node tools/verify-release.mjs
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+          RELEASE_IS_PRERELEASE: ${{ github.event.release.prerelease }}
+      - run: npm run check
+      - run: npm run test:unit
+      - run: npm run pack:release
+      - uses: actions/upload-artifact@v4
+        with:
+          name: npm-package
+          path: release/*.tgz
+          if-no-files-found: error
+          retention-days: 14
+
+  publish:
+    if: github.event_name == 'release'
+    needs: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.release.tag_name }}
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          registry-url: https://registry.npmjs.org
+          package-manager-cache: false
+      - name: Use npm with trusted publishing support
+        run: npm install --global npm@11.16.0
+      - uses: actions/download-artifact@v4
+        with:
+          name: npm-package
+          path: release
+      - name: Publish the validated tarball
+        shell: bash
+        run: |
+          set -euo pipefail
+          files=(release/*.tgz)
+          test "${#files[@]}" -eq 1
+          npm publish "${files[0]}" --access public --registry=https://registry.npmjs.org/ --tag "$NPM_DIST_TAG"
+        env:
+          NPM_DIST_TAG: ${{ needs.validate.outputs.dist-tag }}
+          # OIDC is preferred. An optional granular token bootstraps the first package publication.
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+

@@ -4,6 +4,7 @@ coverage/
 .env
 *.local.json
 evidence/
+release/
 PLAN.md
 ACCEPTANCE.md
 AGENTS.md

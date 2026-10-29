@@ -1,0 +1,30 @@
+name: Check plugin
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          package-manager-cache: false
+      # Standalone checks use only Node built-ins. DSH peers are supplied by the Host;
+      # the local test:dsh test additionally needs a built DSH checkout.
+      - run: npm run check
+      - run: npm run test:unit
+      - run: npm run pack:release
+
