@@ -87,4 +87,30 @@ jobs:
           NPM_DIST_TAG: ${{ needs.validate.outputs.dist-tag }}
           # OIDC is preferred. An optional granular token bootstraps the first package publication.
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - name: Verify public registry and tarball
+        shell: bash
+        run: |
+          node --input-type=module <<'JS'
+          import {readFileSync} from 'node:fs';
+          import {createHash} from 'node:crypto';
+          const pkg=JSON.parse(readFileSync('package.json','utf8'));
+          const deadline=Date.now()+330000;
+          let reason='npm has not made the version public yet';
+          while(Date.now()<deadline){
+            try{
+              const metadata=await fetch('https://registry.npmjs.org/'+encodeURIComponent(pkg.name)+'/'+pkg.version+'?verification='+Date.now(),{signal:AbortSignal.timeout(10000)});
+              if(!metadata.ok)throw new Error('Version metadata HTTP '+metadata.status);
+              const published=await metadata.json();
+              if(published.name!==pkg.name||published.version!==pkg.version)throw new Error('Published identity mismatch');
+              const artifact=await fetch(published.dist.tarball,{signal:AbortSignal.timeout(10000)});
+              if(!artifact.ok)throw new Error('Public tarball HTTP '+artifact.status);
+              const integrity='sha512-'+createHash('sha512').update(Buffer.from(await artifact.arrayBuffer())).digest('base64');
+              if(integrity!==published.dist.integrity)throw new Error('Public tarball integrity mismatch');
+              console.log(pkg.name+'@'+pkg.version+' is public and its tarball integrity is verified.');
+              process.exit(0);
+            }catch(error){reason=error.message;console.log('Waiting for npm/CDN: '+reason);}
+            await new Promise(resolve=>setTimeout(resolve,10000));
+          }
+          throw new Error('Upload finished but public installation is not ready: '+reason+'. Check npm processing or staged-package approval.');
+          JS
 
