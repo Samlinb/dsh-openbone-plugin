@@ -6,38 +6,61 @@
 
 ## 安装插件
 
-在 DSH 插件安装界面输入：
+当前 0.4.0 为候选版本，请在 DSH 插件安装界面选择管理员提供的安装包：
 
 ```text
-dsh-openbone-plugin@0.2.4
+dsh-openbone-plugin-0.4.0.tgz
 ```
 
 安装完成后，重启对应的 DSH profile。也可以使用命令行安装：
 
 ```sh
-dsh plugin --profile <你的profile> add dsh-openbone-plugin@0.2.4
+dsh plugin --profile <你的profile> add ./dsh-openbone-plugin-0.4.0.tgz
 ```
 
 请选择实际运行 DSH 网页版或桌面版的 profile。
 
 ## 连接 OpenBone
 
-使用前需要兼容的 DSH 版本、Node.js 24.9 或更新版本，以及可用的 OpenBone 服务。请向服务管理员获取连接地址和访问密钥。
+使用前需要兼容的 DSH、Node.js 24.9 或更新版本，以及管理员提供的 OpenBone 服务地址。自动体验需要 DSH 的持久凭据存储功能；手动账号仍支持 DSH 0.2.1-rc.3 或更新版本（低于 0.3.0）。
+
+### 自动体验
+
+将 `OPENBONE_LIBRARY_URL` 设为服务根地址，例如 `https://animation.example.com/`，不配置 `OPENBONE_LIBRARY_TOKEN`，然后重启对应的 DSH profile。第一次使用 OpenBone 工具时，插件会自动领取体验账号并将连接凭据保存在 DSH 凭据库，无需复制密钥到聊天。
+
+同一安装身份重试会继续使用原账号。默认体验 7 天、最多 2 个工程，实际有效期和配额可在工程绑定结果中查看。到期后联系管理员；插件不会自动换号。请保留 DSH 的凭据数据，以便继续访问自己的工程。
+
+### 管理员开通的手动账号
 
 在运行 DSH 的服务器上配置以下环境变量：
 
 | 变量 | 填写内容 |
 | --- | --- |
 | `OPENBONE_LIBRARY_URL` | 管理员提供的服务地址 |
-| `OPENBONE_LIBRARY_TOKEN` | 管理员提供的访问密钥 |
+| `OPENBONE_LIBRARY_TOKEN` | 手动账号的访问密钥；自动体验时不配置 |
 
 如果使用远程 DSH 网页版，应配置服务器端环境。修改连接配置后，重启 DSH。
+
+托管账号地址形如 `https://animation.example.com/u/alice/`，请保留用户路径和末尾 `/`。每位用户使用独立密钥，管理员会提供包含上述两个值的私密 JSON 文件。不要把密钥发到聊天中。
+
+例如，在运行 DSH 的机器使用 PowerShell：
+
+```powershell
+$connection = Get-Content -Raw ./my.credentials.json | ConvertFrom-Json
+$env:OPENBONE_LIBRARY_URL = $connection.OPENBONE_LIBRARY_URL
+$env:OPENBONE_LIBRARY_TOKEN = $connection.OPENBONE_LIBRARY_TOKEN
+dsh --profile <你的profile>
+```
+
+如果 DSH 由系统服务启动，请由管理员将这两个变量配置到服务环境中。
 
 ## 开始制作
 
 在启用插件的聊天中，先让 DSH 连接工程：
 
 > 列出可用的 OpenBone 工程，并把当前聊天连接到我要修改的角色。
+
+新开通的托管账号包含一个空白 `starter` 工程。可以让 DSH 连接它并创建骨骼和动画，也可以指定名称新建空白工程；托管服务会自动启动编辑。参考库初始为空，需由管理员导入选定参考。
 
 接着查看已有动画：
 
@@ -51,7 +74,7 @@ dsh plugin --profile <你的profile> add dsh-openbone-plugin@0.2.4
 
 > 找一个适合小短腿角色的行走参考，帮我基于它创建新工程。
 
-如果新工程暂时无法连接，请先联系管理员将它设为可用，再继续制作。
+托管服务会自动启动从参考创建的工程。旧式固定端点服务若返回 `connected: false`，需联系管理员配置该工程后再连接。
 
 ## 查看动画预览
 
@@ -86,6 +109,8 @@ Spine WebGL 的使用遵循随包附带的许可说明。
 
 服务重启前请先保存工作。每个聊天可以连接一个工程；需要切换时，让 DSH 列出可用工程并更换连接。
 
+托管服务重启后自动恢复最后保存的工程。继续修改前先重新读取当前状态；撤销历史和旧预览链接不跨服务重启保留。
+
 ## 常见问题
 
 | 情况 | 处理方式 |
@@ -98,3 +123,5 @@ Spine WebGL 的使用遵循随包附带的许可说明。
 | 修改或保存提示冲突 | 让 DSH 重新读取当前工程状态，再继续操作。 |
 
 插件内置的是预览播放器；编辑和保存工程仍需连接 OpenBone 服务。
+
+服务管理员请参阅[托管部署与用户开通](deploy/README.zh-CN.md)。

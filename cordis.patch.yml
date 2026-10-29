@@ -18,4 +18,5 @@
         serviceUrl: !!js process.env.OPENBONE_LIBRARY_URL
         tokenEnv: OPENBONE_LIBRARY_TOKEN
         timeoutMs: 60000
+        autoTrial: true
 

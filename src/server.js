@@ -36,14 +36,14 @@ function cleanMcpResult(result, toolName) {
   return result;
 }
 
-export async function createAssetService(raw, { env = process.env } = {}) {
+export async function createAssetService(raw, { env = process.env, provisioner } = {}) {
   fields(raw, ['dataRoot','runtimeRoot','port','publicUrl','tokenEnv','timeoutMs','previewTtlMs','maxBodyBytes','exportVersion','projects'], ['dataRoot','port','publicUrl','tokenEnv','projects']);
   const config = { timeoutMs: 60000, previewTtlMs: 600000, maxBodyBytes: 2097152, exportVersion: '4.2.22', ...raw };
   requireThat(typeof config.exportVersion === 'string' && /^\d+\.\d+\.\d+$/.test(config.exportVersion), 'INVALID_CONFIG', 'Configure the preview export format version.');
   requireThat(Number.isInteger(config.port) && config.port >= 0 && config.port <= 65535, 'INVALID_CONFIG', 'Invalid listen port.');
   for (const key of ['timeoutMs','previewTtlMs','maxBodyBytes']) requireThat(Number.isInteger(config[key]) && config[key] >= 1 && config[key] <= 2147483647, 'INVALID_CONFIG', 'Invalid service limit.');
   const publicUrl = new URL(config.publicUrl);
-  requireThat((publicUrl.protocol === 'https:' || (publicUrl.protocol === 'http:' && ['127.0.0.1','localhost','[::1]'].includes(publicUrl.hostname))) && publicUrl.pathname === '/' && !publicUrl.search && !publicUrl.hash && !publicUrl.username && !publicUrl.password, 'INVALID_CONFIG', 'publicUrl must be an HTTPS origin or loopback HTTP origin.');
+  requireThat((publicUrl.protocol === 'https:' || (publicUrl.protocol === 'http:' && ['127.0.0.1','localhost','[::1]'].includes(publicUrl.hostname))) && /^\/(?:[a-z0-9-]+\/)*$/.test(publicUrl.pathname) && !publicUrl.search && !publicUrl.hash && !publicUrl.username && !publicUrl.password, 'INVALID_CONFIG', 'publicUrl must be an HTTPS or loopback HTTP base URL ending in /.');
   const token = secret(config.tokenEnv, env);
   const store = await new LibraryStore(config.dataRoot).init();
   const runtime = await verifyRuntime(config.runtimeRoot);
@@ -56,10 +56,16 @@ export async function createAssetService(raw, { env = process.env } = {}) {
     await store.project(row.projectId);
     projects.set(row.projectId, new OpenBoneConnection({ url: row.url, token: secret(row.tokenEnv, env), timeoutMs: config.timeoutMs }));
   }
+  async function connectionFor(projectId) {
+    await store.project(projectId);
+    if (provisioner) return provisioner.ensure(store, projectId);
+    requireThat(projects.has(projectId), 'PROJECT_NOT_CONNECTED', 'Ask the operator to provision this project endpoint.', 409);
+    return projects.get(projectId);
+  }
   async function bound(sessionId, signal) {
     const binding = await store.binding(sessionId);
-    requireThat(binding && projects.has(binding.projectId), 'PROJECT_NOT_CONNECTED', 'Bind a provisioned OpenBone project before editing.', 409);
-    const connection = projects.get(binding.projectId);
+    requireThat(binding, 'PROJECT_NOT_CONNECTED', 'Bind an OpenBone project before editing.', 409);
+    const connection = await connectionFor(binding.projectId);
     const context = await connection.call('openbone_get_context', {}, signal);
     const view = resultData(context).view;
     requireThat(view?.projectId === binding.projectId && typeof view.workspaceRoot === 'string' && await realpath(view.workspaceRoot) === await realpath(path.join(store.root, 'workspaces', binding.projectId)), 'ENDPOINT_MISMATCH', 'OpenBone endpoint does not own the configured project workspace.', 409);
@@ -73,17 +79,25 @@ export async function createAssetService(raw, { env = process.env } = {}) {
       case 'lesson': fields(body, ['name'], ['name']); return store.lesson(body.name);
       case 'create': {
         fields(body, ['workId','snapshotId','projectId'], ['workId','snapshotId','projectId']);
-        const receipt = await store.create(body);
-        return { projectId: receipt.projectId, workId: receipt.workId, snapshotId: receipt.snapshotId, userApproval: receipt.userApproval, replay: receipt.replay, connected: projects.has(receipt.projectId) };
+        const receipt = provisioner ? await provisioner.create(store, body.projectId, () => store.create(body)) : await store.create(body);
+        if (provisioner) await connectionFor(receipt.projectId);
+        return { projectId: receipt.projectId, workId: receipt.workId, snapshotId: receipt.snapshotId, userApproval: receipt.userApproval, replay: receipt.replay, connected: !!provisioner || projects.has(receipt.projectId) };
+      }
+      case 'new': {
+        fields(body, ['projectId'], ['projectId']);
+        requireThat(provisioner, 'PROVISIONING_UNAVAILABLE', 'Blank projects require the hosted service.', 409);
+        const receipt = await provisioner.create(store, body.projectId, () => store.createBlank(body.projectId));
+        await connectionFor(receipt.projectId);
+        return { projectId: receipt.projectId, replay: receipt.replay, connected: true };
       }
       case 'binding': {
         fields(body, ['sessionId'], ['sessionId']);
         const binding = await store.binding(body.sessionId);
-        return { binding, availableProjects: [...projects.keys()] };
+        return { binding, availableProjects: provisioner ? (await store.projects()).map(p => p.projectId) : [...projects.keys()] };
       }
       case 'bind': {
         fields(body, ['sessionId','projectId','expectedProjectId'], ['sessionId','projectId','expectedProjectId']);
-        requireThat(projects.has(body.projectId), 'PROJECT_NOT_CONNECTED', 'Project copy exists only after provisioning; ask the operator to configure its endpoint.', 409);
+        await connectionFor(body.projectId);
         const receipt = await store.bind(body.sessionId, body.projectId, body.expectedProjectId);
         return { binding: receipt };
       }
@@ -106,7 +120,7 @@ export async function createAssetService(raw, { env = process.env } = {}) {
         const result = await connection.call('openbone_save_project', { path: path.join(store.root, 'workspaces', projectId, 'saved.openbone.json'), portable: true, overwrite: true, expectedRevision: text(body.expectedRevision, 256), requestId: text(body.requestId, 128) }, signal);
         if (result.isError) return result;
         const data = resultData(result);
-        return { content: [{ type: 'text', text: 'Saved the bound project as saved.openbone.json. Configure this file as source when restarting OpenBone.' }], structuredContent: { data: { saved: true, revision: data.revision ?? body.expectedRevision } } };
+        return { content: [{ type: 'text', text: provisioner ? 'Saved the bound project. The hosted service restores this saved version after restart.' : 'Saved the bound project as saved.openbone.json. Configure this file as source when restarting OpenBone.' }], structuredContent: { data: { saved: true, revision: data.revision ?? body.expectedRevision } } };
       }
       case 'preview': {
         fields(body, ['sessionId','expectedRevision','requestId'], ['sessionId','expectedRevision','requestId']);
@@ -133,18 +147,20 @@ export async function createAssetService(raw, { env = process.env } = {}) {
         requireThat(previews.size < 1000, 'PREVIEW_LIMIT', 'Too many unexpired previews; wait for expiration.', 429);
         const capability = randomBytes(32).toString('hex'), expiresAt = Date.now() + config.previewTtlMs;
         previews.set(hash(capability), { folder, files, revision, projectId, snapshot: pointer.manifestSHA256, expiresAt });
-        return { projectId, sourceRevision: revision, manifestSHA256: pointer.manifestSHA256, expiresAt, viewerUrl: `${publicUrl.origin}/preview/${capability}/viewer.html` };
+        return { projectId, sourceRevision: revision, manifestSHA256: pointer.manifestSHA256, expiresAt, viewerUrl: `${publicUrl.href}preview/${capability}/viewer.html` };
       }
       default: throw new Failure('NOT_FOUND', 'Unknown API action.', 404);
     }
   }
-  const server = createServer(async (req, res) => {
+  const handle = async (req, res) => {
     res.setHeader('Cache-Control', 'no-store'); res.setHeader('X-Content-Type-Options', 'nosniff'); res.setHeader('Referrer-Policy', 'no-referrer');
     try {
       const host = req.headers.host;
       requireThat(host === `127.0.0.1:${server.address()?.port}` || host === `localhost:${server.address()?.port}` || host === publicUrl.host, 'INVALID_HOST', 'Untrusted request host.', 403);
       requireThat(!req.headers.origin || req.headers.origin === publicUrl.origin || req.headers.origin === `http://${host}`, 'INVALID_ORIGIN', 'Cross-origin requests are not permitted.', 403);
       const url = new URL(req.url, 'http://localhost');
+      requireThat(url.pathname.startsWith(publicUrl.pathname), 'NOT_FOUND', 'Unknown service route.', 404);
+      url.pathname = '/' + url.pathname.slice(publicUrl.pathname.length);
       if (url.pathname.startsWith('/v1/')) {
         requireThat(equal(req.headers.authorization, `Bearer ${token}`), 'UNAUTHORIZED', 'Authentication required.', 401);
         requireThat(req.method === 'POST' && req.headers['content-type']?.split(';')[0] === 'application/json', 'INVALID_REQUEST', 'Expected JSON POST.', 405);
@@ -186,13 +202,14 @@ export async function createAssetService(raw, { env = process.env } = {}) {
       res.setHeader('Content-Type', 'application/json');
       res.end(JSON.stringify({ error: { code: known ? error.code : error.code === 'ENOENT' ? 'NOT_FOUND' : 'INTERNAL_ERROR', message: known ? error.message : 'Operation failed. Check the server configuration and asset integrity.' } }));
     }
-  });
+  };
+  const server = createServer(handle);
   return {
-    store, dispatch,
+    store, dispatch, handle,
     async listen() {
       await new Promise((resolve, reject) => { server.once('error', reject); server.listen(config.port, '127.0.0.1', resolve); });
       return `http://127.0.0.1:${server.address().port}`;
     },
-    async close() { previews.clear(); await new Promise((resolve, reject) => server.close(error => error ? reject(error) : resolve())); },
+    async close() { previews.clear(); if (server.listening) await new Promise((resolve, reject) => server.close(error => error ? reject(error) : resolve())); },
   };
 }

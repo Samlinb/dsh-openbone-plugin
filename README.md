@@ -6,38 +6,61 @@ Create and refine skeletal animations through conversation in DSH, then play the
 
 ## Install
 
-In DSH, open the plugin installer and enter:
+Version 0.4.0 is currently delivered as a candidate archive. Select the administrator-supplied file in the DSH plugin installer:
 
 ```text
-dsh-openbone-plugin@0.2.4
+dsh-openbone-plugin-0.4.0.tgz
 ```
 
 Restart the DSH profile after installation. You can also install through the CLI:
 
 ```sh
-dsh plugin --profile <your-profile> add dsh-openbone-plugin@0.2.4
+dsh plugin --profile <your-profile> add ./dsh-openbone-plugin-0.4.0.tgz
 ```
 
 Use the profile that runs your DSH Web or desktop application.
 
 ## Connect
 
-You need a compatible DSH release, Node.js 24.9 or later, and an available OpenBone service. Ask your service administrator for the connection address and access key.
+You need a compatible DSH, Node.js 24.9 or later, and the OpenBone service address. Automatic trials require DSH credential-record storage. Manual accounts also support DSH 0.2.1-rc.3 or later (below 0.3.0).
+
+### Automatic trial
+
+Set `OPENBONE_LIBRARY_URL` to the service root, such as `https://animation.example.com/`, leave `OPENBONE_LIBRARY_TOKEN` unset, then restart the DSH profile. The first OpenBone tool operation automatically enrolls and stores its connection in DSH's credential provider. Do not paste credentials into chat.
+
+Retries reuse the same installation/account. Defaults are seven days and two projects; the project binding result reports the actual expiry and quota. Contact the administrator after expiry; the plugin does not silently enroll another account. Preserve DSH's credential data to keep access to your projects.
+
+### Administrator-issued manual account
 
 The DSH server needs these environment variables:
 
 | Variable | Value |
 | --- | --- |
 | `OPENBONE_LIBRARY_URL` | The service address supplied by your administrator |
-| `OPENBONE_LIBRARY_TOKEN` | The access key supplied by your administrator |
+| `OPENBONE_LIBRARY_TOKEN` | Manual account access key; leave unset for automatic trials |
 
 For a remote DSH Web installation, configure them on the machine running DSH. Restart DSH after changing the connection settings.
+
+Hosted accounts use an address such as `https://animation.example.com/u/alice/`. Preserve the account path and trailing slash. Each account has its own access key. Your administrator supplies a private JSON file with the two environment values. Do not paste the key into chat.
+
+For example, in PowerShell on the DSH machine:
+
+```powershell
+$connection = Get-Content -Raw ./my.credentials.json | ConvertFrom-Json
+$env:OPENBONE_LIBRARY_URL = $connection.OPENBONE_LIBRARY_URL
+$env:OPENBONE_LIBRARY_TOKEN = $connection.OPENBONE_LIBRARY_TOKEN
+dsh --profile <your-profile>
+```
+
+For a managed DSH service, have its administrator set these variables in the service environment instead.
 
 ## Start an animation task
 
 Open a chat with the plugin enabled and ask it to connect to an available project:
 
 > List the available OpenBone projects and connect this chat to the character I want to work on.
+
+A newly opened hosted account includes an empty `starter` project. Ask DSH to connect to it and create your bones and animation, or to create another empty project with a name you choose. The hosted service starts editing automatically. Your reference library starts empty until your administrator imports selected references.
 
 Then inspect its animations:
 
@@ -51,7 +74,7 @@ You can also ask for a suitable motion reference:
 
 > Find a reference for a short-legged character's walk and help me start a new project from it.
 
-If the new project is not available for connection yet, ask your administrator to make it available before continuing.
+Hosted services automatically start projects created from references. If an older fixed-endpoint service reports `connected: false`, ask its administrator to provision that project before connecting.
 
 ## Watch the preview
 
@@ -86,6 +109,8 @@ When you are satisfied:
 
 Save your work before the OpenBone service is restarted. Each chat can connect to a project; to switch projects, ask DSH to list the available projects and change the connection.
 
+The hosted service restores the last saved project after restart. Read the current state again before editing; undo history and old preview links do not survive a service restart.
+
 ## Troubleshooting
 
 | Problem | What to do |
@@ -98,3 +123,5 @@ Save your work before the OpenBone service is restarted. Each chat can connect t
 | Saving or editing reports a conflict | Ask DSH to read the current project state before continuing. |
 
 The plugin includes the preview player. An OpenBone service connection is still required to edit and save projects.
+
+Service administrators: see [hosted deployment and onboarding](deploy/README.md).

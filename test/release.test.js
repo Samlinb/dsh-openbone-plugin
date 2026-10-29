@@ -1,7 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {spawnSync} from 'node:child_process';
-import {readFileSync} from 'node:fs';
+import {readFileSync,mkdtempSync,mkdirSync,copyFileSync,writeFileSync,rmSync} from 'node:fs';
+import {tmpdir} from 'node:os';
+import path from 'node:path';
 
 const pkg=JSON.parse(readFileSync(new URL('../package.json',import.meta.url),'utf8'));
 function guard(overrides={}){
@@ -28,7 +30,7 @@ function planner(target,...flags){
   const env={...process.env};delete env.GITHUB_OUTPUT;delete env.npm_execpath;
   return spawnSync(process.execPath,['tools/release.mjs',target,'--dry-run','--skip-gates','--allow-dirty',...flags],{encoding:'utf8',env});
 }
-const git=command=>spawnSync('git',[command],{encoding:'utf8'}).stdout;
+const git=(...args)=>spawnSync('git',args,{encoding:'utf8'}).stdout;
 const manifest=new URL('../package.json',import.meta.url);
 const [major,minor,patch]=pkg.version.split('-')[0].split('.').map(Number);
 const pre=pkg.version.includes('-')?pkg.version.slice(pkg.version.indexOf('-')+1):null;
@@ -59,4 +61,52 @@ test('an explicit prerelease identifier is carried into the tag',()=>{
   const result=planner('1.2.3-rc.1');assert.equal(result.status,0,result.stderr);
   const summary=JSON.parse(result.stdout);
   assert.equal(summary.version,'1.2.3-rc.1');assert.equal(summary.tag,'v1.2.3-rc.1');
+});
+
+test('publishing dry run plans the verified GitHub release and stable npm tag without mutation',()=>{
+  const before=readFileSync(manifest,'utf8'),tags=git('tag'),index=git('diff','--cached','--raw');
+  const result=planner('99.99.99','--publish');assert.equal(result.status,0,result.stderr);
+  const summary=JSON.parse(result.stdout);
+  assert.equal(summary.publishRequested,true);assert.equal(summary.releaseCreated,false);
+  assert.equal(summary.distTag,'latest');assert.equal(summary.pushed,false);
+  assert.ok(summary.releaseCommand.includes('--verify-tag'));
+  assert.ok(summary.releaseCommand.includes('--notes-from-tag'));
+  assert.ok(!summary.releaseCommand.includes('--prerelease'));
+  assert.equal(readFileSync(manifest,'utf8'),before);assert.equal(git('tag'),tags);assert.equal(git('diff','--cached','--raw'),index);
+});
+
+test('prerelease publishing plans next without marking the GitHub release latest',()=>{
+  const result=planner('99.99.99-rc.1','--publish');assert.equal(result.status,0,result.stderr);
+  const summary=JSON.parse(result.stdout);
+  assert.equal(summary.distTag,'next');assert.ok(summary.releaseCommand.includes('--prerelease'));
+  assert.ok(summary.releaseCommand.includes('--latest=false'));
+});
+
+test('local release updates only the version, commits it and creates the matching annotated tag',()=>{
+  const root=mkdtempSync(path.join(tmpdir(),'openbone-release-test-'));
+  const command=(...args)=>{
+    const result=spawnSync('git',args,{cwd:root,encoding:'utf8'});
+    assert.equal(result.status,0,result.stderr);return result.stdout.trim();
+  };
+  try{
+    for(const dir of ['tools','src'])mkdirSync(path.join(root,dir));
+    for(const file of ['tools/release.mjs','tools/verify-release.mjs','src/errors.js','src/files.js'])copyFileSync(new URL('../'+file,import.meta.url),path.join(root,file));
+    const initial=JSON.stringify({...pkg,version:'1.2.3'},null,2)+'\n';
+    writeFileSync(path.join(root,'package.json'),initial);
+    command('init');command('config','user.name','Release Test');command('config','user.email','release@example.invalid');
+    command('add','.');command('commit','-m','fixture');
+    const result=spawnSync(process.execPath,['tools/release.mjs','--skip-gates'],{cwd:root,encoding:'utf8'});
+    assert.equal(result.status,0,result.stderr);
+    assert.equal(JSON.parse(result.stdout).version,'1.2.4');
+    assert.equal(readFileSync(path.join(root,'package.json'),'utf8'),initial.replace('"version": "1.2.3"','"version": "1.2.4"'));
+    assert.equal(command('show','--format=','--name-only','HEAD'),'package.json');
+    assert.equal(command('cat-file','-t','refs/tags/v1.2.4'),'tag');
+    assert.equal(command('rev-parse','v1.2.4^{}'),command('rev-parse','HEAD'));
+    assert.equal(command('status','--porcelain'),'');
+    writeFileSync(path.join(root,'uncommitted.txt'),'pending work');
+    const rejected=spawnSync(process.execPath,['tools/release.mjs','--publish','--allow-dirty'],{cwd:root,encoding:'utf8'});
+    assert.notEqual(rejected.status,0);assert.match(rejected.stderr,/GIT_DIRTY/);
+    assert.equal(JSON.parse(readFileSync(path.join(root,'package.json'),'utf8')).version,'1.2.4');
+    assert.equal(command('tag'),'v1.2.4');
+  }finally{rmSync(root,{recursive:true,force:true});}
 });

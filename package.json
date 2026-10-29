@@ -1,6 +1,6 @@
 {
   "name": "dsh-openbone-plugin",
-  "version": "0.2.4",
+  "version": "0.4.0",
   "description": "Create, edit and preview OpenBone skeletal animations through DSH.",
   "repository": {
     "type": "git",
@@ -42,16 +42,17 @@
     "cordis.patch.yml",
     "examples/server.json",
     "tools/serve.mjs",
+    "tools/hosted.mjs",
     "README.md",
     "README.zh-CN.md"
   ],
   "engines": {
     "node": ">=24.9.0",
-    "dsh": ">=0.2.2-alpha.2 <0.3.0"
+    "dsh": ">=0.2.1-rc.3 <0.3.0"
   },
   "peerDependencies": {
-    "@deepseek-ai/cordis": "4.0.6-alpha.1",
-    "@deepseek-ai/dsh-mcp-client": "0.2.2-alpha.2"
+    "@deepseek-ai/cordis": "~4.0.5 || ~4.0.6-alpha.1",
+    "@deepseek-ai/dsh-mcp-client": ">=0.2.1-rc.3 <0.2.2 || >=0.2.2-alpha.2 <0.3.0"
   },
   "dsh": {
     "bundle": {
@@ -60,10 +61,14 @@
   },
   "scripts": {
     "test": "node --test test/*.test.js",
-    "test:unit": "node --test test/library.test.js test/runtime.test.js test/server.test.js test/release.test.js",
+    "test:unit": "node --test test/library.test.js test/runtime.test.js test/server.test.js test/release.test.js test/hosted.test.js test/trial.test.js",
+    "test:hosted": "node --test test/hosted.test.js",
+    "hosted": "node tools/hosted.mjs",
     "test:dsh": "node --test test/plugin.test.js",
+    "test:dsh:version": "node tools/test-dsh-version.mjs",
     "check": "node tools/check.mjs",
     "release": "node tools/release.mjs",
+    "publish:release": "node tools/release.mjs --publish",
     "release:dry": "node tools/release.mjs --dry-run --skip-gates --allow-dirty",
     "pack:release": "node tools/pack-release.mjs",
     "bundle:runtime": "node tools/bundle-runtime.mjs",

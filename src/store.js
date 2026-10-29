@@ -89,6 +89,33 @@ export class LibraryStore {
     id(projectId);
     return json(await safeFile(path.join(this.root, 'workspaces', projectId), 'project-receipt.json'));
   }
+  async projects() {
+    const rows = [];
+    for (const entry of await readdir(path.join(this.root, 'workspaces'), { withFileTypes: true })) {
+      if (entry.name.startsWith('.')) continue;
+      requireThat(entry.isDirectory() && !entry.isSymbolicLink(), 'LINK_DENIED', 'Invalid project directory.');
+      rows.push(await this.project(entry.name));
+    }
+    return rows;
+  }
+  async createBlank(projectId) {
+    id(projectId);
+    return this.exclusive(async () => {
+      const parent = await realpath(path.join(this.root, 'workspaces'));
+      if ((await readdir(parent)).includes(projectId)) {
+        const receipt = await this.project(projectId);
+        requireThat(receipt.workId === null, 'PROJECT_CONFLICT', 'Project ID is already used for another reference.', 409);
+        return { ...receipt, replay: true };
+      }
+      const stage = await mkdtemp(path.join(parent, '.project-'));
+      try {
+        const receipt = { schemaVersion: 1, projectId, workId: null, snapshotId: null, project: null, createdAt: new Date().toISOString(), userApproval: 'pending' };
+        await writeJsonNew(path.join(stage, 'project-receipt.json'), receipt);
+        await rename(stage, path.join(parent, projectId));
+        return { ...receipt, replay: false };
+      } finally { await rm(stage, { recursive: true, force: true }); }
+    });
+  }
   bindingFile(sessionId) { return path.join(this.root, 'bindings', `${hash(text(sessionId, 256))}.json`); }
   async binding(sessionId) {
     try { return await json(this.bindingFile(sessionId)); }

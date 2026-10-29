@@ -28,3 +28,18 @@ jobs:
       - run: npm run test:unit
       - run: npm run pack:release
 
+  dsh-compatibility:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        version: ['0.2.1-rc.3', '0.2.2-alpha.2']
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          package-manager-cache: false
+      - run: npm run test:dsh:version -- ${{ matrix.version }}
+
