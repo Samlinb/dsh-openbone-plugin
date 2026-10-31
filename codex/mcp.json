@@ -1,0 +1,4 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/mcp.schema.json",
+  "mcpServers": { "openbone": { "type": "stdio", "command": "node", "args": ["${PLUGIN_ROOT}/server/codex-mcp.js"], "cwd": "${PLUGIN_ROOT}" } }
+}

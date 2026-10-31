@@ -5,7 +5,7 @@ const messages = {
   zh:{title:'OpenBone 动画预览',play:'播放',pause:'暂停',fit:'适应画面',capture:'截图',loop:'循环',loading:'加载中…',ready:'WebGL 预览已加载',error:'预览失败',animation:'动画',skin:'皮肤',time:'时间',speed:'速度',engine:'运行时'},
 };
 const engine=new URL(location.href).searchParams.get('engine')==='official'?'official':'independent';
-let language = navigator.language.startsWith('zh') ? 'zh':'en', playing=false, player, frame, camera, duration=0, identity, last, disposed=false, loaded=false;
+let language = navigator.language.startsWith('zh') ? 'zh':'en', playing=false, player, frame, camera, duration=0, identity, last, disposed=false, loaded=false, readySent=false;
 const t = key => messages[language][key];
 function localize() {
   document.documentElement.lang=language; document.title=t('title'); $('title').textContent=t('title');
@@ -31,6 +31,7 @@ function animate(now) {
     const width=Math.max(1,Math.round(rect.width*dpr)),height=Math.max(1,Math.round(rect.height*dpr));
     if($('canvas').width!==width || $('canvas').height!==height){$('canvas').width=width;$('canvas').height=height;}
     player.render(camera);
+    if(loaded&&!readySent){readySent=true;const message={type:'openbone-preview-ready',revision:identity.sourceRevision};window.parent.postMessage(message,'*');window.opener?.postMessage(message,'*');}
     $('seek').value=String(player.loop && duration>0 ? player.time%duration:Math.min(player.time,duration));
     $('time').textContent=`${Number($('seek').value).toFixed(3)} s`;
     frame=requestAnimationFrame(animate);

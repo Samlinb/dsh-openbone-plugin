@@ -1,0 +1,21 @@
+{
+  "name": "openbone-studio",
+  "version": "0.1.0",
+  "description": "Create and preview OpenBone skeletal animations with Codex.",
+  "author": {
+    "name": "OpenBone"
+  },
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "OpenBone Studio",
+    "shortDescription": "Skeletal animation studio",
+    "longDescription": "Create, edit and preview OpenBone skeletal animations using an existing OpenBone account.",
+    "developerName": "OpenBone",
+    "category": "Productivity",
+    "capabilities": [
+      "Interactive"
+    ],
+    "defaultPrompt": "Help me create an OpenBone animation."
+  }
+}

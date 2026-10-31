@@ -11,6 +11,11 @@ test('HTTP requires credentials, rejects unknown fields and never exposes assets
   assert.equal((await post('search',{},false)).status,401);
   assert.equal((await post('search',{unexpected:true})).status,400);
   const search=await(await post('search',{})).json();assert.equal(search.works[0].status,'rejected');
+  const prepared=await(await post('prepare',{sessionId:'one'})).json();
+  assert.equal(prepared.binding,null);assert.equal(prepared.referenceCount,1);assert.equal(prepared.imageGeneration.available,false);assert.match(prepared.guide,/assetId/);assert.doesNotMatch(JSON.stringify(prepared),new RegExp(f.destination.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')));
+  assert.equal((await post('assets-generate',{sessionId:'one',requestId:'one',character:'rabbit',style:'flat',parts:[]})).status,409);
+  assert.equal(prepared.previewCapture.available,false);
+  assert.equal((await post('capture',{sessionId:'one',expectedRevision:'fixture',requestId:'fixture'})).status,409);
   assert.equal((await fetch(`${url}/assets/anything`)).status,404);
   assert.equal((await fetch(`${url}/preview/${'a'.repeat(64)}/viewer.html`)).status,404);
   assert.equal((await post('call',{sessionId:'one',name:'openbone_load_project',arguments:{path:'secret'}})).status,403);

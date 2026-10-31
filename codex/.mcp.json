@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "openbone": {
+      "command": "node",
+      "args": [
+        "./server/codex-mcp.js"
+      ],
+      "cwd": "."
+    }
+  }
+}

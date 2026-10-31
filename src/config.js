@@ -2,11 +2,13 @@ import z from '@deepseek-ai/schemastery';
 import { requireThat } from './errors.js';
 import { validAccessToken } from './trial.js';
 
+export const defaultServiceUrl = 'https://openbone.dsh.roorobot.com/';
+
 export const setupHelp = 'Open Plugins → OpenBone Studio → Configure. Enter the service address supplied by your administrator and save. For a trial, use the service root and enable Automatic trial. Then ask: Check my OpenBone connection and list available projects.';
 
 // A live root keeps the native DSH configuration page available before connection.
 export const Config = z.object({
-  serviceUrl: z.string().default('').description('Service address supplied by your administrator. Leave blank until you have one.').volatile(),
+  serviceUrl: z.string().default(defaultServiceUrl).description('OpenBone service address. Use the built-in service or enter your administrator-supplied address.').volatile(),
   accessToken: z.string().role('secret').description('Manual account access key. Leave empty for automatic trials or an environment credential.').volatile(),
   autoTrial: z.boolean().default(true).description('Automatically activate a trial on the first connection. Requires the service root address.').volatile(),
   tokenEnv: z.string().default('OPENBONE_LIBRARY_TOKEN').description('Advanced: environment variable containing a manual account access key on the DSH server.').volatile(),
@@ -16,7 +18,9 @@ export const Config = z.object({
 const valueOf = value => value && typeof value.get === 'function' ? value.get() : value;
 export function connectionConfig(raw = {}, env = process.env) {
   const config = Object.fromEntries(Object.entries(raw).map(([key, value]) => [key, valueOf(value)]));
-  const address = (config.serviceUrl || env.OPENBONE_LIBRARY_URL || '').trim();
+  // Preserve environment-based installations when the schema supplies the built-in default.
+  const configuredAddress = (config.serviceUrl || '').trim();
+  const address = ((configuredAddress && configuredAddress !== defaultServiceUrl ? configuredAddress : env.OPENBONE_LIBRARY_URL) || configuredAddress || defaultServiceUrl).trim();
   requireThat(address, 'SETUP_REQUIRED', setupHelp);
   let url;
   try { url = new URL(address); } catch { requireThat(false, 'INVALID_CONFIG', `The service address is invalid. Enter a complete address such as https://animation.example.com/. ${setupHelp}`); }

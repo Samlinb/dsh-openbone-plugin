@@ -2,20 +2,22 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import vm from 'node:vm';
-import { Config, connectionConfig } from '../src/config.js';
+import { Config, connectionConfig, defaultServiceUrl } from '../src/config.js';
 
-test('fresh installation exposes editable settings and actionable setup errors without a raw URL exception', () => {
+test('fresh installation uses the built-in service and exposes editable settings', () => {
   const config = Config({});
-  assert.equal(config.serviceUrl.get(), '');
+  assert.equal(config.serviceUrl.get(), defaultServiceUrl);
   assert.equal(config.autoTrial.get(), true);
   assert.equal(Config.dict.accessToken.meta.role, 'secret');
   for (const field of Object.values(Config.dict)) assert.equal(field.meta.volatile, true);
-  assert.throws(() => connectionConfig(config, {}), error => error.code === 'SETUP_REQUIRED' && /Plugins.*Configure/.test(error.message));
+  for (const raw of [config, {}, { serviceUrl: '' }]) assert.equal(connectionConfig(raw, {}).url.href, 'https://openbone.dsh.roorobot.com/');
   assert.throws(() => connectionConfig({ serviceUrl: 'missing-address' }, {}), error => error.code === 'INVALID_CONFIG' && !error.message.includes('Invalid URL'));
 });
 
 test('connection settings support environment migration, live references, manual keys and strict endpoint boundaries', () => {
   const token = 'test_manual_key_'.padEnd(40, 'x');
+  assert.equal(connectionConfig(Config({}), { OPENBONE_LIBRARY_URL: 'https://override.example.com/' }).url.href, 'https://override.example.com/');
+  assert.equal(connectionConfig({ serviceUrl: 'https://custom.example.com/' }, { OPENBONE_LIBRARY_URL: 'https://override.example.com/' }).url.href, 'https://custom.example.com/');
   assert.equal(connectionConfig(Config({}), { OPENBONE_LIBRARY_URL: 'https://animation.example.com/', OPENBONE_LIBRARY_TOKEN: token }).token, token);
   const raw = Config({ serviceUrl: 'https://animation.example.com/u/alice/', accessToken: token, autoTrial: false });
   assert.equal(connectionConfig(raw, {}).url.pathname, '/u/alice/');

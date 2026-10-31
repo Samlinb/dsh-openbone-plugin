@@ -7,10 +7,12 @@ import { hash } from './files.js';
 import { readAccount, provisionAccount } from './hosted-accounts.js';
 import { createAssetService } from './server.js';
 import { HostedProjectPool } from './hosted-projects.js';
+import { imageProvider as createImageProvider } from './image-provider.js';
+import { previewRenderer } from './capture.js';
 
 export function hostedConfig(raw) {
-  fields(raw, ['dataRoot', 'javaJar', 'javaCommand', 'javaHeapMb', 'port', 'publicUrl', 'mcpPortStart', 'mcpPortCount', 'maxProjectsPerUser', 'timeoutMs', 'startupTimeoutMs', 'previewTtlMs', 'maxBodyBytes', 'controlTokenEnv'], ['dataRoot', 'javaJar', 'port', 'publicUrl']);
-  const config = { javaCommand: 'java', javaHeapMb: 256, mcpPortStart: 39900, mcpPortCount: 32, maxProjectsPerUser: 4, timeoutMs: 60000, startupTimeoutMs: 30000, previewTtlMs: 600000, maxBodyBytes: 2097152, ...raw };
+  fields(raw, ['dataRoot', 'javaJar', 'javaCommand', 'javaHeapMb', 'port', 'publicUrl', 'mcpPortStart', 'mcpPortCount', 'maxProjectsPerUser', 'timeoutMs', 'startupTimeoutMs', 'previewTtlMs', 'maxBodyBytes', 'controlTokenEnv','imageGeneration','previewCapture','previewFrameOrigins','legacyServerImages'], ['dataRoot', 'javaJar', 'port', 'publicUrl']);
+  const config = { javaCommand: 'java', javaHeapMb: 256, mcpPortStart: 39900, mcpPortCount: 32, maxProjectsPerUser: 4, timeoutMs: 60000, startupTimeoutMs: 30000, previewTtlMs: 600000, maxBodyBytes: 24*1024*1024, ...raw };
   const url = new URL(config.publicUrl);
   requireThat(url.pathname === '/' && !url.username && !url.password && !url.search && !url.hash && (url.protocol === 'https:' || (url.protocol === 'http:' && ['127.0.0.1', 'localhost', '[::1]'].includes(url.hostname))), 'INVALID_CONFIG', 'Hosted publicUrl must be an HTTPS or loopback HTTP origin.');
   config.publicUrl = url.href;
@@ -34,8 +36,10 @@ export async function recoverHostedLock(root) {
   return true;
 }
 
-export async function createHostedService(raw, { env = process.env } = {}) {
+export async function createHostedService(raw, { env = process.env, imageProvider, captureRenderer } = {}) {
   const config = hostedConfig(raw);
+  const configuredImageProvider=config.legacyServerImages?imageProvider??createImageProvider(config.imageGeneration,env):null;
+  const renderer=captureRenderer??previewRenderer(config.previewCapture);
   const controlToken = config.controlTokenEnv ? env[config.controlTokenEnv] : undefined;
   if (config.controlTokenEnv) requireThat(/^[A-Z][A-Z0-9_]*$/.test(config.controlTokenEnv) && typeof controlToken === 'string' && /^[a-f0-9]{64}$/.test(controlToken), 'INVALID_CONFIG', 'Configure the private control-plane credential environment variable.');
   config.dataRoot = await realpath(config.dataRoot);
@@ -91,7 +95,7 @@ export async function createHostedService(raw, { env = process.env } = {}) {
             return operation();
           }),
         };
-        const creating = createAssetService({ dataRoot: path.join(config.dataRoot, 'tenants', account.userId), port: config.port, publicUrl: new URL(`u/${account.userId}/`, publicUrl).href, tokenEnv: 'HOSTED_INTERNAL_TOKEN', projects: [], timeoutMs: config.timeoutMs, previewTtlMs: config.previewTtlMs, maxBodyBytes: config.maxBodyBytes }, { env: { HOSTED_INTERNAL_TOKEN: internalToken }, provisioner }).then(service => ({ service, internalToken }));
+        const creating = createAssetService({ dataRoot: path.join(config.dataRoot, 'tenants', account.userId), port: config.port, publicUrl: new URL(`u/${account.userId}/`, publicUrl).href, tokenEnv: 'HOSTED_INTERNAL_TOKEN', projects: [], timeoutMs: config.timeoutMs, previewTtlMs: config.previewTtlMs, maxBodyBytes: config.maxBodyBytes, legacyServerImages:config.legacyServerImages, imageGeneration:config.imageGeneration,previewFrameOrigins:config.previewFrameOrigins }, { env: { ...env, HOSTED_INTERNAL_TOKEN: internalToken }, provisioner, imageProvider:configuredImageProvider, captureRenderer:renderer }).then(service => ({ service, internalToken }));
         services.set(account.userId, creating);
         creating.catch(() => { if (services.get(account.userId) === creating) services.delete(account.userId); });
       }
@@ -123,7 +127,7 @@ export async function createHostedService(raw, { env = process.env } = {}) {
         if (server.listening) await new Promise(resolve => server.close(resolve));
         const tenants = await Promise.allSettled([...services.values()].map(async promise => { const { service } = await promise; await service.close(); }));
         // A broken tenant must never prevent other users' JVMs from being checkpointed and stopped.
-        await pool.close();
+        try{await pool.close();}finally{await renderer?.close();}
         requireThat(tenants.every(result => result.status === 'fulfilled'), 'TENANT_CLOSE_FAILED', 'A tenant service failed to close. Inspect its private configuration.', 500);
       } finally { await lock.close(); await unlink(lockFile); }
     },

@@ -4,7 +4,7 @@ window.__ModuleLoader__.load({ id: 'dsh-openbone-plugin', factory: require => {
   const dictionaries = {
     en: {
       title: 'OpenBone Studio', intro: 'From your first character to a refined animation. Connect once, then create and review through chat.',
-      setup: '1 · Connect your workspace', address: 'Service address', addressHint: 'Ask your administrator for this address. The plugin needs an OpenBone service to create and save animations.',
+      setup: '1 · Connect your workspace', address: 'Service address', addressHint: 'The built-in service is https://openbone.dsh.roorobot.com/. Your DSH server and browser must be able to reach its network. You can enter another service address.',
       mode: 'Account', trial: 'Automatic trial', manual: 'I have an access key', trialHint: 'Use the service root address. Your first connection activates a trial and securely stores its access; retries keep the same account.',
       manualHint: 'Use your full account address, including /u/your-account/.', key: 'Access key', keyHint: 'Leave blank to keep the saved key or use the server environment credential. Never paste a key into chat.',
       save: 'Save connection', saving: 'Saving…', discard: 'Discard changes', clearKey: 'Remove saved key on save', unsaved: 'Unsaved changes', saved: 'Connection saved. Continue with step 2 to check access.', failed: 'Could not save. Your settings may have changed elsewhere. Reload this page and try again.',
@@ -13,14 +13,14 @@ window.__ModuleLoader__.load({ id: 'dsh-openbone-plugin', factory: require => {
       check: '2 · Check your connection', checkHint: 'Save first, then check the real service here. Automatic trials activate at this step. Your access key stays on the DSH server.',
       checkPrompt: 'Check my OpenBone connection and list the available projects. Explain any connection problem and how I can fix it.', copyCheck: 'Copy connection check', copied: 'Copied — paste into your chat', copyFailed: 'Copy unavailable. Select and copy the text below.',
       create: '3 · Create your first animation', createHint: 'Start small, inspect the actual preview, and refine it with feedback.',
-      createPrompt: 'Connect this chat to the starter OpenBone project. Create a simple waving character, show me an animation preview, and save the project after I review it.', copyCreate: 'Copy first task',
+      createPrompt: 'Use OpenBone prepare to check this chat and the starter project. Create an original bouncing rabbit: generate missing character parts, inspect the assembled rig, animate it, show actual playback and save. Explain any unavailable capability.', copyCreate: 'Copy first task',
       tips: 'Keep creating', preview: 'After an edit, ask for a fresh preview. If the link expires, request another.', undo: 'To step back, say “Undo the last edit and show a new preview.”', saveTip: 'Ask to save your project before the service restarts.',
       recovery: 'Having trouble?', recoveryText: 'Address rejected: use the complete address from your administrator. Cannot connect: check that the service is running and reachable from the DSH server. Access denied or trial expired: contact your administrator; reinstalling does not extend a trial.', loading: 'Loading workspace settings…', unavailable: 'Settings are unavailable. Enable OpenBone Studio and check that your DSH version supports plugin settings.',
       checkNow: 'Check connection', checking: 'Checking connection…', connected: 'Connected · available projects:', saveFirst: 'Save your connection settings before checking.', connectionFailed: 'Could not connect. Check that the service is running and reachable from the DSH server.', accessDenied: 'Access denied. Check your account address and key, or contact your administrator if your trial has expired.', trialFailed: 'Trial activation failed. Check that the address is the service root and that your DSH supports credential storage. Contact your administrator if access expired.', responseFailed: 'This address did not return an OpenBone service response. Check the address with your administrator.', checkUnsupported: 'The connection check is unavailable on this DSH installation. Use the chat request below to check access.',
     },
     zh: {
       title: 'OpenBone Studio', intro: '从第一个角色到细致的动画。完成一次连接，就可以在聊天中创作、预览并持续调整。',
-      setup: '1 · 连接创作空间', address: '服务地址', addressHint: '向管理员获取此地址。插件需要连接 OpenBone 服务，才能创建和保存动画。',
+      setup: '1 · 连接创作空间', address: '服务地址', addressHint: '内置服务为 https://openbone.dsh.roorobot.com/。DSH 服务端和浏览器都需要能够访问其所在网络，也可以填写其他服务地址。',
       mode: '使用方式', trial: '自动开通试用', manual: '我已有访问密钥', trialHint: '填写服务根地址。首次连接会开通试用并安全保存访问凭据；重试将继续使用同一账号。',
       manualHint: '填写完整账号地址，保留 /u/你的账号/ 路径。', key: '访问密钥', keyHint: '留空可保留已保存的密钥，或使用服务端环境凭据。不要把密钥粘贴到聊天中。',
       save: '保存连接', saving: '正在保存…', discard: '放弃修改', clearKey: '保存时移除已存密钥', unsaved: '有尚未保存的修改', saved: '连接设置已保存。继续第 2 步，检查实际访问是否正常。', failed: '保存失败，设置可能已在其他地方更改。请重新打开此页后重试。',
@@ -29,7 +29,7 @@ window.__ModuleLoader__.load({ id: 'dsh-openbone-plugin', factory: require => {
       check: '2 · 检查连接', checkHint: '先保存设置，再在这里检查真实服务。自动试用会在此时开通；访问密钥始终保留在 DSH 服务端。',
       checkPrompt: '检查我的 OpenBone 连接并列出可用工程。如果连接失败，请解释原因和修复方法。', copyCheck: '复制连接检查请求', copied: '已复制，粘贴到聊天即可', copyFailed: '暂时无法自动复制，请手动选择下方文字复制。',
       create: '3 · 制作第一个动画', createHint: '从小任务开始，查看真实预览，再根据效果给出反馈。',
-      createPrompt: '把这个聊天连接到 OpenBone 的 starter 工程，创建一个简单的挥手角色，给我看动画预览，等我检查后保存工程。', copyCreate: '复制第一个创作任务',
+      createPrompt: '先用 OpenBone 创作准备检查连接和 starter 工程。创建一个原创的蹦跳兔子：生成缺少的分件贴图、检查组装后的绑定、制作动画、查看真实播放并保存。如果缺少能力，请直接解释原因。', copyCreate: '复制第一个创作任务',
       tips: '继续创作', preview: '每次修改后，请生成新预览；预览链接过期时，可以重新生成。', undo: '想退回一步时，可以说：“撤销上次修改，再给我看新预览。”', saveTip: '服务重启前，记得让助手保存工程。',
       recovery: '遇到问题？', recoveryText: '地址无效：使用管理员提供的完整地址。无法连接：检查服务是否运行，以及 DSH 服务端能否访问。访问被拒绝或试用到期：联系管理员；重新安装不会延长试用。', loading: '正在读取创作空间设置…', unavailable: '暂时无法读取设置。请启用 OpenBone Studio，并检查 DSH 版本是否支持插件配置页。',
       checkNow: '检查连接', checking: '正在检查连接…', connected: '已连接 · 可用工程数：', saveFirst: '请先保存连接设置，再检查访问。', connectionFailed: '无法连接。请检查服务是否运行，以及 DSH 服务端能否访问。', accessDenied: '访问被拒绝。请检查账号地址和密钥；试用到期时请联系管理员。', trialFailed: '试用开通失败。请检查是否填写了服务根地址，以及 DSH 是否支持凭据存储。访问到期时请联系管理员。', responseFailed: '此地址没有返回 OpenBone 服务响应，请向管理员确认地址。', checkUnsupported: '当前 DSH 安装暂不支持页面连接检查，可使用下方聊天请求检查访问。',
@@ -107,10 +107,19 @@ window.__ModuleLoader__.load({ id: 'dsh-openbone-plugin', factory: require => {
         h('details', null, h('summary', null, t('recovery')), h('p', null, t('recoveryText'))));
     }
     ctx.effect(() => ctx.slots.inject('plugins.bundle.config', () => ctx.slots.register({ name: 'plugins.bundle.config', key: 'dsh-openbone-plugin', locale: 'openbone.setup' }, Studio)));
+    function ClientWorkshop(){
+      const [sessionId,setSessionId]=useState(()=>localStorage.getItem('openbone.client.session.v1')||''),[error,setError]=useState('');
+      async function start(){try{if(!ctx.sessions)throw new Error('DSH session service is unavailable.');const id=await ctx.sessions.create();localStorage.setItem('openbone.client.session.v1',id);setSessionId(id);}catch(e){setError(e.message);}}
+      const src=new URL('api/openbone-studio/client-ui/client-studio.html',document.baseURI);src.hash=new URLSearchParams({session:sessionId}).toString();
+      return h('div',{className:'openbone-studio'},error&&h('p',{role:'alert'},error),sessionId&&h('button',{onClick:()=>ctx.uiWorkspace?.openSession(sessionId)},'打开此工程的创作对话'),sessionId?h('iframe',{title:'OpenBone client image workbench',src:src.href,style:{width:'100%',height:'calc(100vh - 100px)',border:0}}):h('button',{onClick:start},'打开客户端图片工作台'),h('details',null,h('summary',null,'连接设置'),h(Studio)));
+    }
+    ctx.effect(()=>ctx.slots.inject('main',()=>ctx.slots.register({name:'main',key:'openbone-studio',locale:'openbone.setup'},ClientWorkshop)));
+    ctx.effect(()=>ctx.slots.inject('sidebar.panellist',()=>ctx.slots.register({name:'sidebar.panellist',id:'openbone-studio',order:5,locale:'openbone.setup',label:()=> 'OpenBone'},({size})=>h('span',{'aria-hidden':true,style:{fontSize:size}},'◇'))));
+
     function Welcome(props) {
       return h('div', { style: { padding: 16 } }, h('h3', null, t('title')), h('p', null, t('intro')), h('button', { onClick: props.onOpenDetails }, t('setup')));
     }
     ctx.effect(() => ctx.slots.inject('plugins.bundle.activation', () => ctx.slots.register({ name: 'plugins.bundle.activation', key: 'dsh-openbone-plugin', locale: 'openbone.setup' }, Welcome)));
   }
-  return { apply, inject: ['slots', 'locale', 'configForms'] };
+  return { apply, inject: ['slots', 'locale', 'configForms', 'sessions', 'uiWorkspace'] };
 } });

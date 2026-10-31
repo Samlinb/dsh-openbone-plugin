@@ -24,7 +24,7 @@ try{
   dependencies.semver='7.7.2';
   Object.assign(dependencies, pkg.dependencies);
   await writeFile(path.join(root,'package.json'),JSON.stringify({private:true,type:'module',dependencies}));
-  for(const dir of ['src','test','vendor'])await cp(new URL(`../${dir}/`,import.meta.url),path.join(root,dir),{recursive:true});
+  for(const dir of ['src','test','vendor','public'])await cp(new URL(`../${dir}/`,import.meta.url),path.join(root,dir),{recursive:true});
   await run([npmCli,'install','--ignore-scripts','--no-audit','--no-fund','--package-lock=false']);
   const require=createRequire(path.join(root,'package.json'));
   const semver=require('semver');

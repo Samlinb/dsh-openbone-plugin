@@ -10,7 +10,7 @@ export function object(value) {
 }
 export function fields(value, allowed, required = []) {
   object(value);
-  requireThat(Object.keys(value).every(key => allowed.includes(key)) && required.every(key => Object.hasOwn(value, key)), 'INVALID_INPUT', 'Missing or unknown fields.');
+  requireThat(Object.keys(value).every(key => allowed.includes(key)) && required.every(key => Object.hasOwn(value, key)), 'INVALID_INPUT', `Missing or unknown fields. Allowed: ${allowed.join(', ')||'(none)'}. Required: ${required.join(', ')||'(none)'}.`);
   return value;
 }
 export function id(value) {
